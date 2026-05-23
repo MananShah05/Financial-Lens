@@ -20,7 +20,7 @@ QUOTE_TYPE_MAP = {
 
 def _normalize_ticker(ticker: str) -> tuple[str, str]:
     """
-    Map yfinance symbol conventions to Finnhub symbol conventions and asset classes.
+    Map common symbol conventions to Finnhub symbol conventions and asset classes.
     Returns: (finnhub_symbol, asset_class)
     """
     # 1. Forex / Currency Pairs (e.g. USDINR=X, EURUSD=X)
@@ -41,6 +41,12 @@ def _normalize_ticker(ticker: str) -> tuple[str, str]:
             return f"BINANCE:{base}{quote}", "crypto"
 
     # 3. Market Indices (e.g. ^GSPC, ^NSEI, ^BSESN)
+    if ticker in {"GSPC", "^GSPC", "SPX", "SP500"}:
+        return "^GSPC", "index"
+    if ticker in {"NSEI", "^NSEI"}:
+        return "^NSEI", "index"
+    if ticker in {"BSESN", "^BSESN"}:
+        return "^BSESN", "index"
     if ticker.startswith("^"):
         # Finnhub handles standard US indices directly under stock candles with caretaker
         return ticker, "index"
@@ -66,7 +72,7 @@ def _get_timestamps(period: str) -> tuple[int, int]:
     return from_ts, to_ts
 
 
-def _fetch_single_series(ticker: str, from_ts: int, to_ts: int, token: str) -> pd.Series:
+def _fetch_single_series(ticker: str, from_ts: int, to_ts: int, token: str, period: str) -> pd.Series:
     """
     Fetch daily close candles from Finnhub for a single ticker.
     """
@@ -100,6 +106,14 @@ def _fetch_single_series(ticker: str, from_ts: int, to_ts: int, token: str) -> p
                 r = client.get(url, params=params)
 
             if r.status_code != 200:
+                if r.status_code == 403 and asset_class == "index":
+                    raise HTTPException(
+                        status_code=422,
+                        detail={
+                            "message": f"Finnhub returned HTTP 403 for index ticker '{ticker}' (resolved as '{params['symbol']}'). Your Finnhub plan or token may not allow index candles.",
+                            "code": "TICKER_FETCH_FAILED",
+                        },
+                    )
                 raise HTTPException(
                     status_code=422,
                     detail={
@@ -167,7 +181,7 @@ def fetch_prices(tickers: list[str], period: str) -> pd.DataFrame:
     series_list = []
 
     for ticker in tickers:
-        series = _fetch_single_series(ticker, from_ts, to_ts, token)
+        series = _fetch_single_series(ticker, from_ts, to_ts, token, period)
         series_list.append(series)
 
     # Merge all Series into a single DataFrame aligned on DatetimeIndex

@@ -40,3 +40,5 @@ npm-debug.log*
 # ── Local Mockups & Stitch Specifications ─────────────────────────────────────
 stitch_assets/
 .md
+.vercel
+.env*.local

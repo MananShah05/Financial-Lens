@@ -11,7 +11,14 @@ const nextConfig: NextConfig = {
       ];
     }
 
-    return [];
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://financial-time-series-api.vercel.app";
+
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${backendUrl}/api/:path*`,
+      },
+    ];
   },
 };
 
