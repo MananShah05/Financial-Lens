@@ -1,0 +1,94 @@
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+@import "tailwindcss";
+
+:root {
+
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: var(--font-dm-sans);
+  --font-mono: var(--font-jetbrains-mono);
+  
+  --font-display: var(--font-syne);
+  --font-body-lg: var(--font-dm-sans);
+  --font-body-sm: var(--font-dm-sans);
+  --font-headline-lg: var(--font-syne);
+  --font-headline-md: var(--font-syne);
+  --font-data-lg: var(--font-jetbrains-mono);
+  --font-data-sm: var(--font-jetbrains-mono);
+  --font-label-caps: var(--font-jetbrains-mono);
+
+  --color-primary: #adc6ff;
+  --color-on-primary: #002e6a;
+  --color-primary-container: #4d8eff;
+  --color-secondary: #4ae176;
+  --color-tertiary: #ffb786;
+  --color-error: #ffb4ab;
+  --color-background: #111416;
+  --color-surface: #111416;
+  --color-surface-container-lowest: #0c0e11;
+  --color-surface-container-low: #191c1e;
+  --color-surface-container: #1d2022;
+  --color-surface-container-high: #282a2d;
+  --color-surface-container-highest: #323538;
+  --color-outline-variant: #424754;
+  --color-outline: #8c909f;
+  --color-on-surface: #e1e2e6;
+  --color-on-surface-variant: #c2c6d6;
+  
+  --spacing-gutter: 16px;
+  --spacing-stack-sm: 4px;
+  --spacing-stack-md: 12px;
+  --spacing-container-padding: 24px;
+  --spacing-sidebar-width: 220px;
+  --spacing-grid-unit: 8px;
+  
+  --radius-DEFAULT: 0.125rem;
+  --radius-lg: 0.25rem;
+  --radius-xl: 0.5rem;
+  --radius-full: 0.75rem;
+}
+
+body {
+  background-color: #111416;
+  background-image: radial-gradient(#1e2530 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: #e1e2e6;
+  font-family: var(--font-sans);
+}
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined' !important;
+  font-weight: normal !important;
+  font-style: normal !important;
+  font-size: 20px !important;
+  line-height: 1 !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+  display: inline-block !important;
+  white-space: nowrap !important;
+  word-wrap: normal !important;
+  direction: ltr !important;
+  -webkit-font-feature-settings: 'liga' !important;
+  -webkit-font-smoothing: antialiased !important;
+}
+
+.panel {
+  background-color: #1d2022; /* bg-surface-container */
+  border: 1px solid #424754; /* border-outline-variant */
+  border-radius: 0.5rem; /* radius-xl */
+}
+
+/* Hide scrollbar for technical look */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #111416;
+}
+::-webkit-scrollbar-thumb {
+  background: #323538;
+}
+
