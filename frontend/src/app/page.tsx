@@ -11,7 +11,7 @@ export default function ScenarioPage() {
   return (
     <div className="min-h-screen bg-[#131315] text-[#e5e1e4] flex font-sans select-none antialiased">
       {/* Pro SideNavBar Navigation */}
-      <aside className="w-64 h-screen fixed left-0 top-0 bg-[#201f22] border-r border-[#424754] flex flex-col pt-6 pb-20 z-50 font-sans">
+      <aside className="w-64 h-screen fixed left-0 top-0 bg-[#201f22] border-r border-outline-variant flex flex-col pt-6 pb-20 z-50 font-sans">
         <div className="px-6 mb-8">
           <h1 className="text-xl font-bold text-on-surface tracking-tighter uppercase font-display">QUANT_ANALYSIS</h1>
           <p className="text-[10px] text-tertiary font-mono tracking-wider font-semibold mt-1">Live: NASDAQ Connected</p>
@@ -20,7 +20,7 @@ export default function ScenarioPage() {
         <nav className="flex-1 space-y-1">
           {/* Dashboard (Simulated / Disabled) */}
           <div className="flex items-center text-on-surface-variant/40 px-6 py-3 cursor-not-allowed">
-            <Icons.Dashboard className="w-[18px] h-[18px] mr-3 opacity-40" />
+            <Icons.Dashboard className="w-4.5 h-4.5 mr-3 opacity-40" />
             <span className="font-sans text-sm font-medium">Dashboard</span>
           </div>
  
@@ -29,11 +29,11 @@ export default function ScenarioPage() {
             onClick={() => setActiveTab("stress")}
             className={`w-full flex items-center px-6 py-3 transition-all text-left border-l-2 ${
               activeTab === "stress"
-                ? "text-primary border-primary bg-[#282a2d] font-semibold"
-                : "text-on-surface-variant border-transparent hover:bg-[#282a2d] hover:text-on-surface"
+                ? "text-primary border-primary bg-surface-container-highontainer-high font-semibold"
+                : "text-on-surface-variant border-transparent hover:bg-surface-container-high hover:text-on-surface"
             }`}
           >
-            <Icons.Analytics className="w-[18px] h-[18px] mr-3" />
+            <Icons.Analytics className="w-4.5 h-4.5 mr-3" />
             <span className="font-sans text-sm font-medium">Stress Test</span>
           </button>
  
@@ -42,11 +42,11 @@ export default function ScenarioPage() {
             onClick={() => setActiveTab("correlation")}
             className={`w-full flex items-center px-6 py-3 transition-all text-left border-l-2 ${
               activeTab === "correlation"
-                ? "text-primary border-primary bg-[#282a2d] font-semibold"
-                : "text-on-surface-variant border-transparent hover:bg-[#282a2d] hover:text-on-surface"
+                ? "text-primary border-primary bg-surface-container-high font-semibold"
+                : "text-on-surface-variant border-transparent hover:bg-surface-container-high hover:text-on-surface"
             }`}
           >
-            <Icons.Correlation className="w-[18px] h-[18px] mr-3" />
+            <Icons.Correlation className="w-4.5 h-4.5 mr-3" />
             <span className="font-sans text-sm font-medium">Correlation</span>
           </button>
  
@@ -55,23 +55,23 @@ export default function ScenarioPage() {
             onClick={() => setActiveTab("regression")}
             className={`w-full flex items-center px-6 py-3 transition-all text-left border-l-2 ${
               activeTab === "regression"
-                ? "text-primary border-primary bg-[#282a2d] font-semibold"
-                : "text-on-surface-variant border-transparent hover:bg-[#282a2d] hover:text-on-surface"
+                ? "text-primary border-primary bg-surface-container-high font-semibold"
+                : "text-on-surface-variant border-transparent hover:bg-surface-container-high hover:text-on-surface"
             }`}
           >
-            <Icons.Regression className="w-[18px] h-[18px] mr-3" />
+            <Icons.Regression className="w-4.5 h-4.5 mr-3" />
             <span className="font-sans text-sm font-medium">Regression</span>
           </button>
  
           {/* Portfolio (Simulated) */}
           <div className="flex items-center text-on-surface-variant/40 px-6 py-3 cursor-not-allowed">
-            <Icons.Portfolio className="w-[18px] h-[18px] mr-3 opacity-40" />
+            <Icons.Portfolio className="w-4.5 h-4.5 mr-3 opacity-40" />
             <span className="font-sans text-sm font-medium">Portfolio</span>
           </div>
  
           {/* Settings (Simulated) */}
           <div className="flex items-center text-on-surface-variant/40 px-6 py-3 cursor-not-allowed">
-            <Icons.Settings className="w-[18px] h-[18px] mr-3 opacity-40" />
+            <Icons.Settings className="w-4.5 h-4.5 mr-3 opacity-40" />
             <span className="font-sans text-sm font-medium">Settings</span>
           </div>
         </nav>
@@ -86,7 +86,7 @@ export default function ScenarioPage() {
             Export Report
           </button>
           
-          <div className="pt-4 border-t border-[#424754] space-y-2.5 font-sans">
+          <div className="pt-4 border-t border-outline-variant space-y-2.5 font-sans">
             <div className="flex items-center text-xs text-tertiary gap-2 font-medium">
               <Icons.CheckCircle className="w-3.5 h-3.5" />
               <span>Status: Stable</span>
@@ -103,10 +103,10 @@ export default function ScenarioPage() {
       {/* Pro Main Content Canvas */}
       <main className="ml-64 flex-1 min-h-screen flex flex-col overflow-x-hidden bg-[#131315]">
         {/* Pro TopNavBar Header */}
-        <header className="fixed top-0 right-0 w-[calc(100%-256px)] h-16 border-b border-[#424754] bg-[#131315]/90 backdrop-blur-md z-40 flex items-center justify-between px-8">
+        <header className="fixed top-0 right-0 w-[calc(100%-256px)] h-16 border-b border-outline-variant bg-[#131315]/90 backdrop-blur-md z-40 flex items-center justify-between px-8">
           <div className="flex items-center gap-8">
             {/* Pro Search Box */}
-            <div className="flex items-center gap-2.5 bg-[#2a2a2c] px-3 py-1.5 rounded-lg border border-[#424754]">
+            <div className="flex items-center gap-2.5 bg-[#2a2a2c] px-3 py-1.5 rounded-lg border border-outline-variant">
               <Icons.Search className="w-4 h-4 text-on-surface-variant" />
               <input 
                 type="text" 
@@ -130,7 +130,7 @@ export default function ScenarioPage() {
               <button className="p-2 text-on-surface-variant hover:text-primary transition-colors"><Icons.Help className="w-4.5 h-4.5" /></button>
             </div>
             
-            <div className="h-6 w-[1px] bg-[#424754]"></div>
+            <div className="h-6 w-px bg-outline-variant"></div>
             
             <button 
               onClick={() => alert("Scenario Analysis template initialized.")}
@@ -140,7 +140,7 @@ export default function ScenarioPage() {
             </button>
             
             {/* Pro Analyst Profile Avatar image */}
-            <div className="w-8 h-8 rounded-full overflow-hidden border border-[#8c909f] shadow-inner select-none">
+            <div className="w-8 h-8 rounded-full overflow-hidden border border-outline shadow-inner select-none">
               <img 
                 alt="Analyst" 
                 className="w-full h-full object-cover" 
