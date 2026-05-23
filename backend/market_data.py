@@ -73,36 +73,36 @@ def _get_timestamps(period: str) -> tuple[int, int]:
     return from_ts, to_ts
 
 
+def _fetch_via_yfinance(ticker: str, from_ts: int, to_ts: int) -> pd.Series:
+    """
+    Fetch daily close prices from yfinance for a single ticker.
+    """
+    import yfinance as yf
+    yf_ticker = yf.Ticker(ticker)
+    start_date = pd.to_datetime(from_ts, unit="s").strftime('%Y-%m-%d')
+    # Add 1 day to include the end date in yfinance
+    end_date = pd.to_datetime(to_ts + 86400, unit="s").strftime('%Y-%m-%d')
+    hist = yf_ticker.history(start=start_date, end=end_date)
+    if not hist.empty:
+        series = hist["Close"]
+        series.name = ticker
+        if series.index.tz is not None:
+            series.index = series.index.tz_convert(None)
+        series.index = series.index.normalize()
+        return series
+    raise ValueError(f"No historical data returned by yfinance for '{ticker}'")
+
+
 def _fetch_single_series(ticker: str, from_ts: int, to_ts: int, token: str, period: str) -> pd.Series:
     """
-    Fetch daily close candles from Finnhub for a single ticker.
+    Fetch daily close candles from Finnhub for a single ticker, falling back to yfinance if needed.
     """
     symbol, asset_class = _normalize_ticker(ticker)
     
-    # Route to the appropriate Finnhub candle endpoint
-    if asset_class == "crypto":
-        endpoint = "crypto"
-    elif asset_class == "forex":
-        endpoint = "forex"
-    else:
-        endpoint = "stock"  # equities and indices utilize stock candle endpoint
-
-    # For indices, Finnhub free tier usually returns 403. Fallback to yfinance.
+    # Route directly to yfinance for indices as Finnhub free tier usually returns 403.
     if asset_class == "index":
         try:
-            import yfinance as yf
-            yf_ticker = yf.Ticker(ticker)
-            start_date = pd.to_datetime(from_ts, unit="s").strftime('%Y-%m-%d')
-            # Add 1 day to include the end date in yfinance
-            end_date = pd.to_datetime(to_ts + 86400, unit="s").strftime('%Y-%m-%d')
-            hist = yf_ticker.history(start=start_date, end=end_date)
-            if not hist.empty:
-                series = hist["Close"]
-                series.name = ticker
-                if series.index.tz is not None:
-                    series.index = series.index.tz_convert(None)
-                series.index = series.index.normalize()
-                return series
+            return _fetch_via_yfinance(ticker, from_ts, to_ts)
         except Exception as e:
             raise HTTPException(
                 status_code=422,
@@ -111,78 +111,68 @@ def _fetch_single_series(ticker: str, from_ts: int, to_ts: int, token: str, peri
                     "code": "TICKER_FETCH_FAILED"
                 }
             )
-        
-        # If hist is empty
-        raise HTTPException(
-            status_code=422,
-            detail={
-                "message": f"No data found for index ticker '{ticker}' via yfinance.",
-                "code": "TICKER_NO_DATA"
-            }
-        )
 
-    url = f"https://finnhub.io/api/v1/{endpoint}/candle"
-    params = {
-        "symbol": symbol,
-        "resolution": "D",
-        "from": from_ts,
-        "to": to_ts,
-        "token": token,
-    }
+    # For other asset classes, try Finnhub if a token is present
+    if token:
+        if asset_class == "crypto":
+            endpoint = "crypto"
+        elif asset_class == "forex":
+            endpoint = "forex"
+        else:
+            endpoint = "stock"  # equities utilize stock candle endpoint
 
-    try:
-        with httpx.Client(timeout=15.0) as client:
-            r = client.get(url, params=params)
-            
-            # Fallback for cryptos if Binance fails, try Coinbase format
-            if r.status_code != 200 and asset_class == "crypto" and "BINANCE" in symbol:
-                alt_symbol = symbol.replace("BINANCE:", "COINBASE:").replace("USDT", "-USD")
-                params["symbol"] = alt_symbol
+        url = f"https://finnhub.io/api/v1/{endpoint}/candle"
+        params = {
+            "symbol": symbol,
+            "resolution": "D",
+            "from": from_ts,
+            "to": to_ts,
+            "token": token,
+        }
+
+        try:
+            with httpx.Client(timeout=15.0) as client:
                 r = client.get(url, params=params)
+                
+                # Fallback for cryptos if Binance fails, try Coinbase format
+                if r.status_code != 200 and asset_class == "crypto" and "BINANCE" in symbol:
+                    alt_symbol = symbol.replace("BINANCE:", "COINBASE:").replace("USDT", "-USD")
+                    params["symbol"] = alt_symbol
+                    r = client.get(url, params=params)
 
-            if r.status_code != 200:
-                raise HTTPException(
-                    status_code=422,
-                    detail={
-                        "message": f"Finnhub API returned HTTP {r.status_code} for ticker '{ticker}' (resolved as '{params['symbol']}').",
-                        "code": "TICKER_FETCH_FAILED"
-                    }
-                )
+                if r.status_code == 200:
+                    data = r.json()
+                    if data.get("s") == "ok" and data.get("c"):
+                        closes = data["c"]
+                        timestamps = data["t"]
+                        dates = pd.to_datetime(timestamps, unit="s").normalize()
+                        series = pd.Series(closes, index=dates, name=ticker)
+                        return series
 
-            data = r.json()
-            if data.get("s") != "ok" or not data.get("c"):
-                # Try raw symbol under stock endpoint as absolute index fallback
-                if endpoint != "stock":
-                    params["symbol"] = ticker
-                    r = client.get("https://finnhub.io/api/v1/stock/candle", params=params)
-                    if r.status_code == 200:
-                        data = r.json()
+                    # Try raw symbol under stock endpoint as absolute index/equity fallback
+                    if endpoint != "stock":
+                        params["symbol"] = ticker
+                        r = client.get("https://finnhub.io/api/v1/stock/candle", params=params)
+                        if r.status_code == 200:
+                            data = r.json()
+                            if data.get("s") == "ok" and data.get("c"):
+                                closes = data["c"]
+                                timestamps = data["t"]
+                                dates = pd.to_datetime(timestamps, unit="s").normalize()
+                                series = pd.Series(closes, index=dates, name=ticker)
+                                return series
+        except Exception:
+            # Proceed to yfinance fallback on request/connection errors
+            pass
 
-                if data.get("s") != "ok" or not data.get("c"):
-                    raise HTTPException(
-                        status_code=422,
-                        detail={
-                            "message": f"Ticker '{ticker}' (resolved as '{symbol}') returned no historical data from Finnhub.",
-                            "code": "TICKER_NO_DATA"
-                        }
-                    )
-
-            # Parse close prices ('c') and timestamps ('t')
-            closes = data["c"]
-            timestamps = data["t"]
-
-            # Convert timestamps to pandas DatetimeIndex normalized to midnight
-            dates = pd.to_datetime(timestamps, unit="s").normalize()
-            series = pd.Series(closes, index=dates, name=ticker)
-            return series
-
-    except HTTPException:
-        raise
+    # Fallback to yfinance if Finnhub failed or key is missing/invalid
+    try:
+        return _fetch_via_yfinance(ticker, from_ts, to_ts)
     except Exception as e:
         raise HTTPException(
             status_code=422,
             detail={
-                "message": f"Unexpected error loading ticker '{ticker}': {str(e)}",
+                "message": f"Failed to fetch ticker '{ticker}' from Finnhub (API key issue/rate limit) and yfinance fallback also failed: {str(e)}",
                 "code": "TICKER_FETCH_FAILED"
             }
         )
@@ -190,20 +180,11 @@ def _fetch_single_series(ticker: str, from_ts: int, to_ts: int, token: str, peri
 
 def fetch_prices(tickers: list[str], period: str) -> pd.DataFrame:
     """
-    Download daily close prices from Finnhub for a list of tickers.
+    Download daily close prices from Finnhub (or yfinance fallback) for a list of tickers.
     Returns DataFrame: index=date, columns=tickers.
     Raises HTTPException 422 if any ticker returns empty data.
     """
     token = os.getenv("FINNHUB_API_KEY")
-    if not token:
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "message": "Finnhub API Key is missing. Please set FINNHUB_API_KEY in your .env file.",
-                "code": "CONFIG_ERROR"
-            }
-        )
-
     from_ts, to_ts = _get_timestamps(period)
     series_list = []
 
