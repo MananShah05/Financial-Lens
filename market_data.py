@@ -5,7 +5,8 @@ import pandas as pd
 from fastapi import HTTPException
 from dotenv import load_dotenv
 
-load_dotenv()
+env_path = os.path.join(os.path.dirname(__file__), '.env')
+load_dotenv(env_path)
 
 QUOTE_TYPE_MAP = {
     "EQUITY": "equity",
@@ -86,40 +87,6 @@ def _fetch_single_series(ticker: str, from_ts: int, to_ts: int, token: str, peri
     else:
         endpoint = "stock"  # equities and indices utilize stock candle endpoint
 
-    # For indices, Finnhub free tier usually returns 403. Fallback to yfinance.
-    if asset_class == "index":
-        try:
-            import yfinance as yf
-            yf_ticker = yf.Ticker(ticker)
-            start_date = pd.to_datetime(from_ts, unit="s").strftime('%Y-%m-%d')
-            # Add 1 day to include the end date in yfinance
-            end_date = pd.to_datetime(to_ts + 86400, unit="s").strftime('%Y-%m-%d')
-            hist = yf_ticker.history(start=start_date, end=end_date)
-            if not hist.empty:
-                series = hist["Close"]
-                series.name = ticker
-                if series.index.tz is not None:
-                    series.index = series.index.tz_convert(None)
-                series.index = series.index.normalize()
-                return series
-        except Exception as e:
-            raise HTTPException(
-                status_code=422,
-                detail={
-                    "message": f"yfinance fallback failed for index ticker '{ticker}': {str(e)}",
-                    "code": "TICKER_FETCH_FAILED"
-                }
-            )
-        
-        # If hist is empty
-        raise HTTPException(
-            status_code=422,
-            detail={
-                "message": f"No data found for index ticker '{ticker}' via yfinance.",
-                "code": "TICKER_NO_DATA"
-            }
-        )
-
     url = f"https://finnhub.io/api/v1/{endpoint}/candle"
     params = {
         "symbol": symbol,
@@ -140,6 +107,14 @@ def _fetch_single_series(ticker: str, from_ts: int, to_ts: int, token: str, peri
                 r = client.get(url, params=params)
 
             if r.status_code != 200:
+                if r.status_code == 403 and asset_class == "index":
+                    raise HTTPException(
+                        status_code=422,
+                        detail={
+                            "message": f"Finnhub returned HTTP 403 for index ticker '{ticker}' (resolved as '{params['symbol']}'). Your Finnhub plan or token may not allow index candles.",
+                            "code": "TICKER_FETCH_FAILED",
+                        },
+                    )
                 raise HTTPException(
                     status_code=422,
                     detail={

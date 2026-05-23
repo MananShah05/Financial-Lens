@@ -6,7 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import scenario
 
-load_dotenv()
+env_path = os.path.join(os.path.dirname(__file__), '.env')
+load_dotenv(env_path)
 
 cors_origins = [
     origin.strip()
