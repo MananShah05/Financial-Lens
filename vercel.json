@@ -1,21 +1,30 @@
 {
+  "version": 2,
   "builds": [
     {
-      "src": "main.py",
+      "src": "api/index.py",
       "use": "@vercel/python"
+    },
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/next"
     }
   ],
   "routes": [
     {
-      "src": "/(.*)",
-      "dest": "main.py"
+      "src": "/api/(.*)",
+      "dest": "api/index.py"
     }
   ],
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 60
+    }
+  },
   "crons": [
     {
-      "path": "/health",
+      "path": "/api/health",
       "schedule": "*/10 * * * *"
     }
   ]
 }
-
