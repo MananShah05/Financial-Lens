@@ -1,0 +1,40 @@
+# ── Python Cache & Temporary Files ──────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ipynb_checkpoints/
+
+# ── Virtual Environments ──────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+ENV/
+
+# ── Local Environment Credentials (CRITICAL: Do not commit keys) ──────────────
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ── Frontend Dependencies & Builds (Monorepo support) ───────────────────────
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.vercel/
+
+# ── OS Metadata & Logs ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+
+# ── Vercel Deployment Artifacts ──────────────────────────────────────────────
+.vercel/
+
+# ── Local Mockups & Stitch Specifications ─────────────────────────────────────
+stitch_assets/
+
