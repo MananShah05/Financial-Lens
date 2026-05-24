@@ -1,4 +1,4 @@
-# QuantLens — Scenario & Sensitivity Analysis Tool
+# Financial Lens — Scenario & Sensitivity Analysis Tool
 
 Stateless quantitative analytics tool for financial time-series data.
 Three analysis modules: Stress Test, Rolling Correlation, OLS Regression.

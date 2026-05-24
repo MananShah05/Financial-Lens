@@ -128,7 +128,7 @@ export default function ScenarioPage() {
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <h1 className="text-[32px] font-bold leading-none tracking-tighter text-[var(--text-primary)]">
-                  QuantLens Scenario Analysis
+                  Financial Lens Scenario Analysis
                 </h1>
                 <p className="mt-2 max-w-2xl text-[15px] font-normal leading-[1.65] text-[var(--text-secondary)]">
                   Shock response, covariance drift, and factor sensitivity in one restrained risk workspace.
@@ -163,7 +163,7 @@ function Sidebar({ activeTab, onChange }: { activeTab: TabKey; onChange: (tab: T
     <aside className="fixed inset-y-0 left-0 z-40 flex w-16 flex-col border-r border-[var(--border-subtle)] bg-[var(--surf-low)] transition-[width] duration-[220ms] ease-[var(--ease-drawer)] lg:w-60">
       <div className="flex h-[60px] items-center bg-[var(--surf-lowest)] px-4 lg:px-5">
         <div className="min-w-0">
-          <div className="text-[11px] font-medium uppercase tracking-[0.02em] text-[var(--text-primary)] lg:block">QuantLens</div>
+          <div className="text-[11px] font-medium uppercase tracking-[0.02em] text-[var(--text-primary)] lg:block">Financial Lens</div>
           <div className="hidden font-mono text-[11px] uppercase tracking-[0.02em] text-[var(--text-secondary)] lg:block">v4.8.0</div>
         </div>
       </div>
@@ -259,7 +259,7 @@ function Header() {
           type="button"
           className="grid h-8 w-8 place-items-center rounded-full border border-[var(--border-subtle)] bg-[var(--surf-high)] font-mono text-[11px] text-[var(--text-primary)] transition-[border-color] duration-[160ms] ease-[var(--ease-out)] hover:border-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
         >
-          QL
+          FL
         </button>
       </div>
     </header>
@@ -281,7 +281,7 @@ function ThemeToggle() {
     } else {
       root.removeAttribute("data-theme")
     }
-    localStorage.setItem("quantlens-theme", next)
+    localStorage.setItem("financiallens-theme", next)
     setTheme(next)
   }
 

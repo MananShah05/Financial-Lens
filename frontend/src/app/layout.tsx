@@ -22,14 +22,14 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "QuantLens — Institutional Risk Analytics",
+  title: "Financial Lens — Institutional Risk Analytics",
   description: "High-performance technical analytics for stress tests, rolling correlation, and OLS regression.",
 }
 
 const themeScript = `
 (() => {
   try {
-    const stored = localStorage.getItem("quantlens-theme");
+    const stored = localStorage.getItem("financiallens-theme");
     const prefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
     const theme = stored || (prefersLight ? "light" : "dark");
     if (theme === "light") {

@@ -1,9 +1,0 @@
-{
-    "chat.tools.terminal.autoApprove": {
-        "git submodule": true,
-        "/^\\(Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned\\) ; \\(& C:\\\\Users\\\\MS\\\\Documents\\\\Code\\\\Financial-Time-Series\\\\\\.venv\\\\Scripts\\\\Activate\\.ps1\\) ; cd backend ; python -m uvicorn main:app --reload --host 127\\.0\\.0\\.1 --port 8000$/": {
-            "approve": true,
-            "matchCommandLine": true
-        }
-    }
-}

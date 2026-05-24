@@ -20,7 +20,7 @@ cors_origins = [
 
 app = FastAPI(
     title="Scenario & Sensitivity Analysis API",
-    description="Stateless quant analytics — stress tests, rolling correlation, OLS regression",
+    description="Stateless financial analytics — stress tests, rolling correlation, OLS regression",
     version="1.0.0",
 )
 
