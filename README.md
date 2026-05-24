@@ -3,7 +3,7 @@
 Stateless quantitative analytics tool for financial time-series data.
 Three analysis modules: Stress Test, Rolling Correlation, OLS Regression.
 
-**Stack:** Next.js 14 · FastAPI · Finnhub · pandas · statsmodels · Recharts
+**Stack:** Next.js 16 · FastAPI · Finnhub · pandas · statsmodels · Recharts
 
 ---
 
