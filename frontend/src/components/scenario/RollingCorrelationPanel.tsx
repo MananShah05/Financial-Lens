@@ -199,19 +199,19 @@ function CorrelationResultView({ result }: { result: RollingCorrelationResult })
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-outline-variant)" opacity={0.15} />
               <XAxis
                 dataKey="date"
-                tick={{ fill: "#c2c6d6", fontSize: 9, fontFamily: "var(--font-mono)" }}
+                tick={{ fill: "var(--text-secondary)", fontSize: 9, fontFamily: "var(--font-mono)" }}
                 tickFormatter={d => d.slice(2, 7)}
                 interval="preserveStartEnd"
                 stroke="var(--color-outline-variant)"
               />
               <YAxis
                 domain={[-1, 1]}
-                tick={{ fill: "#c2c6d6", fontSize: 9, fontFamily: "var(--font-mono)" }}
+                tick={{ fill: "var(--text-secondary)", fontSize: 9, fontFamily: "var(--font-mono)" }}
                 tickFormatter={v => v.toFixed(1)}
                 stroke="var(--color-outline-variant)"
               />
               <Tooltip
-                contentStyle={{ background: "#0c0e11", border: "1px solid var(--color-outline-variant)", borderRadius: 8, fontFamily: "var(--font-mono)", fontSize: 11, color: "#e1e2e6" }}
+                contentStyle={{ background: "var(--surf)", border: "1px solid var(--border-subtle)", borderRadius: 8, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-primary)" }}
                 formatter={(value: any) => [Number(value).toFixed(3), "Correlation"]}
               />
               <ReferenceLine y={0} stroke="var(--color-outline)" strokeDasharray="4 2" opacity={0.4} />

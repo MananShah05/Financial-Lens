@@ -6,7 +6,8 @@ const nextConfig: NextConfig = {
       return [
         {
           source: "/api/:path*",
-          destination: "http://127.0.0.1:8000/api/:path*",
+          // Use backend port 8002 for local development to avoid conflicts
+          destination: "http://127.0.0.1:8002/api/:path*",
         },
       ];
     }

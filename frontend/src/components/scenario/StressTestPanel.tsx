@@ -298,17 +298,17 @@ function StressTestResultView({ result, portfolioValue, scenarioName }: ResultVi
             <BarChart data={histogram} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
               <XAxis
                 dataKey="bin"
-                tick={{ fill: "#c2c6d6", fontSize: 9, fontFamily: "var(--font-mono)" }}
+                tick={{ fill: "var(--text-secondary)", fontSize: 9, fontFamily: "var(--font-mono)" }}
                 tickFormatter={v => `${v}%`}
                 interval="preserveStartEnd"
                 stroke="var(--color-outline-variant)"
               />
               <YAxis 
-                tick={{ fill: "#c2c6d6", fontSize: 9, fontFamily: "var(--font-mono)" }} 
+                tick={{ fill: "var(--text-secondary)", fontSize: 9, fontFamily: "var(--font-mono)" }} 
                 stroke="var(--color-outline-variant)"
               />
               <Tooltip
-                contentStyle={{ background: "#0c0e11", border: "1px solid var(--color-outline-variant)", borderRadius: 8, fontFamily: "var(--font-mono)", fontSize: 11, color: "#e1e2e6" }}
+                contentStyle={{ background: "var(--surf)", border: "1px solid var(--border-subtle)", borderRadius: 8, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-primary)" }}
                 formatter={(value: any) => [`${value} occurrences`, "Frequency"]}
                 labelFormatter={l => `~${l}% return`}
               />
@@ -379,4 +379,3 @@ function StressTestResultView({ result, portfolioValue, scenarioName }: ResultVi
     </div>
   )
 }
-

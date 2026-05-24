@@ -26,6 +26,23 @@ export const metadata: Metadata = {
   description: "High-performance technical analytics for stress tests, rolling correlation, and OLS regression.",
 }
 
+const themeScript = `
+(() => {
+  try {
+    const stored = localStorage.getItem("quantlens-theme");
+    const prefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
+    const theme = stored || (prefersLight ? "light" : "dark");
+    if (theme === "light") {
+      document.documentElement.setAttribute("data-theme", "light");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+  } catch {
+    document.documentElement.removeAttribute("data-theme");
+  }
+})();
+`
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -34,12 +51,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${syne.variable} ${dmSans.variable} ${jetbrainsMono.variable} h-full antialiased dark`}
+      suppressHydrationWarning
+      className={`${syne.variable} ${dmSans.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" />
       </head>
-      <body className="min-h-full bg-[#111416] text-on-surface">
+      <body className="min-h-full bg-background text-on-surface">
         <Providers>
           {children}
         </Providers>
@@ -47,4 +66,3 @@ export default function RootLayout({
     </html>
   )
 }
-

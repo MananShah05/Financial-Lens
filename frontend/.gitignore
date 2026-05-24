@@ -32,6 +32,10 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+.envrc
+.envrc.local
+*.env
+*.env.*
 
 # vercel
 .vercel
@@ -40,5 +44,19 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-.md
+*.md
 .vercel
+
+# misc temp/backup
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*.orig
+*.cache
+.cache/
+
+# IDEs
+.idea/
+*.iml

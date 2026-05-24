@@ -27,7 +27,19 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
-    allow_origin_regex=r"https://.*\.vercel\.app",
+    # Allow Vercel subdomains in production and permit any localhost/127.0.0.1 origin during development.
+    # Uses ENV environment variable to detect production; default is development.
+    # In production only allow Vercel subdomains via regex; in development allow
+    # localhost, 127.0.0.1, and common private network ranges so the app works
+    # on LAN addresses (e.g. http://192.168.x.x:3000) used by Next's network URL.
+    allow_origin_regex=(
+        (r"https://.*\.vercel\.app")
+        if os.getenv("ENV", "development") == "production"
+        else (
+            r"https?://(localhost|127\.0\.0\.1|192\.168\.[0-9]{1,3}\.[0-9]{1,3}" \
+            r"|10\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}|172\.(1[6-9]|2[0-9]|3[0-1])\.[0-9]{1,3}\.[0-9]{1,3})(:\d+)?|https://.*\.vercel\.app"
+        )
+    ),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

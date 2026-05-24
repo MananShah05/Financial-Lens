@@ -6,8 +6,14 @@ import type {
   TickerInfo,
 } from "@/types"
 
+// In development prefer relative requests so Next's rewrites (proxy) handle
+// routing to the backend. In production use NEXT_PUBLIC_API_URL if provided.
+const baseURL = process.env.NODE_ENV !== "production"
+  ? "" // relative -> /api/.. will be rewritten by next.config.ts during dev
+  : (process.env.NEXT_PUBLIC_API_URL || "")
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "",
+  baseURL,
   timeout: 60_000,
 })
 

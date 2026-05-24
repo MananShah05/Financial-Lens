@@ -15,9 +15,14 @@ ENV/
 # ── Local Environment Credentials (CRITICAL: Do not commit keys) ──────────────
 .env
 .env.local
+.env.*
 .env.development.local
 .env.test.local
 .env.production.local
+.envrc
+.envrc.local
+*.env
+*.env.*
 
 # ── Frontend Dependencies & Builds (Monorepo support) ───────────────────────
 /.next/
@@ -39,9 +44,22 @@ npm-debug.log*
 
 # ── Local Mockups & Stitch Specifications ─────────────────────────────────────
 stitch_assets/
-.md
+*.md
 .vercel
 .env*.local
 
 # ── IDEs ─────────────────────────────────────────────────────────────────────
 .vscode/
+.vscode
+.idea/
+*.iml
+
+# ── Temporary & Backup Files ─────────────────────────────────────────────────
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*.orig
+*.cache
+.cache/

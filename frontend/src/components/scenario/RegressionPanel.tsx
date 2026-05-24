@@ -204,7 +204,7 @@ function RegressionResultView({ result }: { result: RegressionResult }) {
                   dataKey="x"
                   type="number"
                   name={result.independent}
-                  tick={{ fill: "#c2c6d6", fontSize: 9, fontFamily: "var(--font-mono)" }}
+                  tick={{ fill: "var(--text-secondary)", fontSize: 9, fontFamily: "var(--font-mono)" }}
                   tickFormatter={v => `${(v * 100).toFixed(1)}%`}
                   stroke="var(--color-outline-variant)"
                 />
@@ -212,12 +212,12 @@ function RegressionResultView({ result }: { result: RegressionResult }) {
                   dataKey="y"
                   type="number"
                   name={result.dependent}
-                  tick={{ fill: "#c2c6d6", fontSize: 9, fontFamily: "var(--font-mono)" }}
+                  tick={{ fill: "var(--text-secondary)", fontSize: 9, fontFamily: "var(--font-mono)" }}
                   tickFormatter={v => `${(v * 100).toFixed(1)}%`}
                   stroke="var(--color-outline-variant)"
                 />
                 <Tooltip
-                  contentStyle={{ background: "#0c0e11", border: "1px solid var(--color-outline-variant)", borderRadius: 8, fontFamily: "var(--font-mono)", fontSize: 10, color: "#e1e2e6" }}
+                  contentStyle={{ background: "var(--surf)", border: "1px solid var(--border-subtle)", borderRadius: 8, fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-primary)" }}
                   formatter={(value: any, name: any) => [`${(Number(value) * 100).toFixed(2)}%`, String(name)]}
                 />
                 <Scatter
