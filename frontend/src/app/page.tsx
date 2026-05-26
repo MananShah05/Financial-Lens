@@ -1,6 +1,7 @@
 "use client"
 
 import { memo, useEffect, useMemo, useRef, useState } from "react"
+import ExcelJS from "exceljs"
 import { AnimatePresence, motion } from "framer-motion"
 import {
   Bell,
@@ -102,8 +103,26 @@ const signedPct = (value: number, decimals = 1) => {
 
 const spring = { type: "spring", stiffness: 400, damping: 30 } as const
 
+interface ActiveAnalysis {
+  tab: TabKey
+  stress?: {
+    result: StressTestResult
+    portfolio: number
+    scenarioName: string
+    note: string
+  }
+  correlation?: {
+    result: RollingCorrelationResult
+  }
+  regression?: {
+    result: RegressionResult
+  }
+}
+
 export default function ScenarioPage() {
-  const [activeTab, setActiveTab] = useState<TabKey>("stress")
+  const [activeAnalysis, setActiveAnalysis] = useState<ActiveAnalysis>({ tab: "stress" })
+  const activeTab = activeAnalysis.tab
+  const setActiveTab = (tab: TabKey) => setActiveAnalysis((prev) => ({ ...prev, tab }))
 
   return (
     <div
@@ -117,7 +136,7 @@ export default function ScenarioPage() {
       } as React.CSSProperties}
     >
       <DashboardStyles />
-      <Sidebar activeTab={activeTab} onChange={setActiveTab} />
+      <Sidebar activeTab={activeTab} onChange={setActiveTab} activeAnalysis={activeAnalysis} />
       <Header />
       <main className="min-h-screen bg-[var(--canvas)] pl-16 pt-[60px] lg:pl-60">
         <div className="px-4 py-5 sm:px-6 lg:px-8">
@@ -147,9 +166,36 @@ export default function ScenarioPage() {
               transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
               className="grid gap-5 xl:grid-cols-[minmax(320px,38%)_1fr]"
             >
-              {activeTab === "stress" && <StressWorkspace />}
-              {activeTab === "correlation" && <CorrelationWorkspace />}
-              {activeTab === "regression" && <RegressionWorkspace />}
+              {activeTab === "stress" && (
+                <StressWorkspace
+                  onResult={(result, portfolio, scenarioName, note) => {
+                    setActiveAnalysis((prev) => ({
+                      ...prev,
+                      stress: { result, portfolio, scenarioName, note },
+                    }))
+                  }}
+                />
+              )}
+              {activeTab === "correlation" && (
+                <CorrelationWorkspace
+                  onResult={(result) => {
+                    setActiveAnalysis((prev) => ({
+                      ...prev,
+                      correlation: { result },
+                    }))
+                  }}
+                />
+              )}
+              {activeTab === "regression" && (
+                <RegressionWorkspace
+                  onResult={(result) => {
+                    setActiveAnalysis((prev) => ({
+                      ...prev,
+                      regression: { result },
+                    }))
+                  }}
+                />
+              )}
             </motion.section>
           </AnimatePresence>
         </div>
@@ -158,7 +204,25 @@ export default function ScenarioPage() {
   )
 }
 
-function Sidebar({ activeTab, onChange }: { activeTab: TabKey; onChange: (tab: TabKey) => void }) {
+function Sidebar({
+  activeTab,
+  onChange,
+  activeAnalysis,
+}: {
+  activeTab: TabKey
+  onChange: (tab: TabKey) => void
+  activeAnalysis: ActiveAnalysis
+}) {
+  const hasData =
+    (activeTab === "stress" && !!activeAnalysis.stress) ||
+    (activeTab === "correlation" && !!activeAnalysis.correlation) ||
+    (activeTab === "regression" && !!activeAnalysis.regression)
+
+  const handleExport = async () => {
+    if (!hasData) return
+    await exportToExcel(activeAnalysis)
+  }
+
   return (
     <aside className="fixed inset-y-0 left-0 z-40 flex w-16 flex-col border-r border-[var(--border-subtle)] bg-[var(--surf-low)] transition-[width] duration-[220ms] ease-[var(--ease-drawer)] lg:w-60">
       <div className="flex h-[60px] items-center bg-[var(--surf-lowest)] px-4 lg:px-5">
@@ -200,10 +264,12 @@ function Sidebar({ activeTab, onChange }: { activeTab: TabKey; onChange: (tab: T
       <div className="space-y-3 border-t border-[var(--border-subtle)] p-3 lg:p-4">
         <button
           type="button"
-          className="flex h-9 w-full items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-3 text-[13px] font-medium text-[var(--accent-on)] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] transition-[transform,opacity] duration-[160ms] ease-[var(--ease-out)]"
+          disabled={!hasData}
+          onClick={handleExport}
+          className="flex h-9 w-full items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-3 text-[13px] font-medium text-[var(--accent-on)] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] transition-[transform,opacity] duration-[160ms] ease-[var(--ease-out)] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <DownloadSimple size={18} weight="regular" />
-          <span className="hidden opacity-0 transition-opacity duration-[80ms] ease-[var(--ease-out)] lg:inline lg:opacity-100">Export</span>
+          <span className="hidden opacity-0 transition-opacity duration-[80ms] ease-[var(--ease-out)] lg:inline lg:opacity-100">Export Report</span>
         </button>
         <div className="flex items-center gap-2 px-1 text-[13px] text-[var(--positive)]">
           <StatusPulse />
@@ -346,7 +412,16 @@ function TabNav({ activeTab, onChange }: { activeTab: TabKey; onChange: (tab: Ta
   )
 }
 
-function StressWorkspace() {
+function StressWorkspace({
+  onResult,
+}: {
+  onResult: (
+    result: StressTestResult,
+    portfolio: number,
+    scenarioName: string,
+    note: string
+  ) => void
+}) {
   const [scenario, setScenario] = useState("rates")
   const selectedScenario = scenarioOptions.find((item) => item.value === scenario) ?? scenarioOptions[0]
   const [ticker, setTicker] = useState(selectedScenario.ticker)
@@ -363,6 +438,12 @@ function StressWorkspace() {
         portfolio_value: portfolio,
       }),
   })
+
+  useEffect(() => {
+    if (mutation.data) {
+      onResult(mutation.data, portfolio, selectedScenario.label, selectedScenario.note)
+    }
+  }, [mutation.data, portfolio, selectedScenario, onResult])
 
   const changeScenario = (value: string) => {
     const next = scenarioOptions.find((item) => item.value === value)
@@ -424,7 +505,11 @@ function StressWorkspace() {
   )
 }
 
-function CorrelationWorkspace() {
+function CorrelationWorkspace({
+  onResult,
+}: {
+  onResult: (result: RollingCorrelationResult) => void
+}) {
   const [ticker1, setTicker1] = useState("QQQ")
   const [ticker2, setTicker2] = useState("^GSPC")
   const [window, setWindow] = useState("60")
@@ -438,6 +523,12 @@ function CorrelationWorkspace() {
         period,
       }),
   })
+
+  useEffect(() => {
+    if (mutation.data) {
+      onResult(mutation.data)
+    }
+  }, [mutation.data, onResult])
 
   return (
     <>
@@ -465,7 +556,11 @@ function CorrelationWorkspace() {
   )
 }
 
-function RegressionWorkspace() {
+function RegressionWorkspace({
+  onResult,
+}: {
+  onResult: (result: RegressionResult) => void
+}) {
   const [dependent, setDependent] = useState("AAPL")
   const [independent, setIndependent] = useState("^GSPC")
   const [period, setPeriod] = useState<Period>("2y")
@@ -477,6 +572,12 @@ function RegressionWorkspace() {
         period,
       }),
   })
+
+  useEffect(() => {
+    if (mutation.data) {
+      onResult(mutation.data)
+    }
+  }, [mutation.data, onResult])
 
   return (
     <>
@@ -896,17 +997,31 @@ function StatCard({
         ? "bg-[var(--error-tint)] text-[var(--error)]"
         : "bg-[var(--accent-tint)] text-[var(--accent)]"
 
+  const isLongDelta = delta.length > 20
+
   return (
     <motion.div
       variants={{
         hidden: { opacity: 0, y: 8 },
         show: { opacity: 1, y: 0, transition: { duration: 0.18, ease: [0.23, 1, 0.32, 1] } },
       }}
-      className="relative min-h-[118px] rounded-lg border border-[var(--border-subtle)] bg-[var(--surf)] p-4"
+      className="flex flex-col justify-between min-h-[118px] rounded-lg border border-[var(--border-subtle)] bg-[var(--surf)] p-4"
     >
-      <div className="text-[11px] font-normal uppercase tracking-[0.02em] text-[var(--text-secondary)]">{label}</div>
-      <div className="mt-4 font-mono text-[24px] font-medium leading-none text-[var(--text-primary)]">{value}</div>
-      <div className={`absolute bottom-3 right-3 rounded-full px-2 py-1 font-mono text-[11px] font-medium ${toneClass}`}>{delta}</div>
+      <div>
+        <div className="text-[11px] font-normal uppercase tracking-[0.02em] text-[var(--text-secondary)]">{label}</div>
+        <div className="mt-3 font-mono text-[24px] font-medium leading-none text-[var(--text-primary)]">{value}</div>
+      </div>
+      {isLongDelta ? (
+        <div className={`mt-3 rounded px-2.5 py-1.5 font-sans text-[12px] font-normal leading-normal ${toneClass}`}>
+          {delta}
+        </div>
+      ) : (
+        <div className="mt-3 flex justify-end">
+          <span className={`rounded-full px-2 py-0.5 font-mono text-[11px] font-medium ${toneClass}`}>
+            {delta}
+          </span>
+        </div>
+      )}
     </motion.div>
   )
 }
@@ -1059,7 +1174,7 @@ function MiniLineChart({ data }: { data: number[] }) {
   return (
     <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--surf)] p-4">
       <h3 className="mb-4 text-[20px] font-bold leading-none tracking-tight">Rolling Correlation Path</h3>
-      <svg viewBox="0 0 740 250" className="h-[250px] w-full">
+      <svg viewBox="0 0 740 250" className="h-[250px] w-full" aria-label="Rolling correlation chart">
         <line x1="40" y1="210" x2="700" y2="210" stroke="var(--border-subtle)" />
         <polyline points={points} fill="none" stroke="var(--accent)" strokeWidth="2" />
       </svg>
@@ -1081,7 +1196,7 @@ function ScatterPlot({ result }: { result: RegressionResult }) {
   return (
     <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--surf)] p-4">
       <h3 className="mb-4 text-[20px] font-bold leading-none tracking-tight">Factor Scatter</h3>
-      <svg viewBox="0 0 720 250" className="h-[250px] w-full">
+      <svg viewBox="0 0 720 250" className="h-[250px] w-full" aria-label="Factor scatter plot">
         <line x1="50" y1="210" x2="670" y2="210" stroke="var(--border-subtle)" />
         {points.map((point, index) => (
           <circle key={`${point.date}-${index}`} cx={sx(point.x)} cy={sy(point.y)} r="3" fill="var(--accent)" fillOpacity="0.7" />
@@ -1262,6 +1377,363 @@ function DashboardStyles() {
       }
     `}</style>
   )
+}
+
+async function svgToPngBase64(svgElement: SVGElement, width: number, height: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    try {
+      const clonedSvg = svgElement.cloneNode(true) as SVGElement
+      let svgHtml = clonedSvg.outerHTML
+
+      const isLight = document.documentElement.getAttribute("data-theme") === "light"
+      const bg = isLight ? "#ffffff" : "#111416"
+      const textPrimary = isLight ? "#111416" : "#e1e2e6"
+      const textSecondary = isLight ? "#475569" : "#8c909f"
+      const borderSubtle = isLight ? "#e2e8f0" : "#323538"
+      const accent = isLight ? "#4d8eff" : "#adc6ff"
+      const positive = isLight ? "#16a34a" : "#4ae176"
+      const error = isLight ? "#dc2626" : "#ffb4ab"
+
+      svgHtml = svgHtml
+        .replaceAll("var(--bg)", bg)
+        .replaceAll("var(--canvas)", bg)
+        .replaceAll("var(--surf)", bg)
+        .replaceAll("var(--text-primary)", textPrimary)
+        .replaceAll("var(--text-secondary)", textSecondary)
+        .replaceAll("var(--border-subtle)", borderSubtle)
+        .replaceAll("var(--accent)", accent)
+        .replaceAll("var(--positive)", positive)
+        .replaceAll("var(--error)", error)
+
+      if (!clonedSvg.getAttribute("width")) {
+        svgHtml = svgHtml.replace("<svg", `<svg width="${width}" height="${height}"`)
+      }
+
+      const svgBlob = new Blob([svgHtml], { type: "image/svg+xml;charset=utf-8" })
+      const url = URL.createObjectURL(svgBlob)
+      const img = new Image()
+
+      img.onload = () => {
+        const canvas = document.createElement("canvas")
+        canvas.width = width * 2
+        canvas.height = height * 2
+        const ctx = canvas.getContext("2d")
+        if (!ctx) {
+          reject(new Error("Could not get canvas context"))
+          return
+        }
+
+        ctx.fillStyle = bg
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        ctx.scale(2, 2)
+        ctx.drawImage(img, 0, 0, width, height)
+
+        const dataUrl = canvas.toDataURL("image/png")
+        URL.revokeObjectURL(url)
+        resolve(dataUrl.split(",")[1])
+      }
+
+      img.onerror = (e) => {
+        URL.revokeObjectURL(url)
+        reject(new Error("Failed to load SVG into image object"))
+      }
+
+      img.src = url
+    } catch (err) {
+      reject(err)
+    }
+  })
+}
+
+async function exportToExcel(analysis: ActiveAnalysis) {
+  const workbook = new ExcelJS.Workbook()
+  workbook.creator = "Financial Lens"
+  workbook.created = new Date()
+
+  const isLight = document.documentElement.getAttribute("data-theme") === "light"
+  const themeAccent = isLight ? "4D8EFF" : "ADC6FF"
+  const themeHeaderBg = "1E293B"
+
+  if (analysis.tab === "stress" && analysis.stress) {
+    const { result, portfolio, scenarioName, note } = analysis.stress
+    const worksheet = workbook.addWorksheet("Stress Test Report")
+    worksheet.views = [{ showGridLines: true }]
+
+    worksheet.columns = [
+      { header: "Metric / Parameter", key: "metric", width: 28 },
+      { header: "Value", key: "value", width: 22 },
+      { header: "Description / Context", key: "desc", width: 45 },
+    ]
+
+    worksheet.mergeCells("A1:C1")
+    const titleCell = worksheet.getCell("A1")
+    titleCell.value = "FINANCIAL LENS — STRESS TESTING REPORT"
+    titleCell.font = { name: "Segoe UI", size: 16, bold: true, color: { argb: "FFFFFF" } }
+    titleCell.alignment = { vertical: "middle", horizontal: "center" }
+    titleCell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: themeHeaderBg },
+    }
+    worksheet.getRow(1).height = 40
+
+    worksheet.addRow(["Date Run", new Date().toLocaleString(), `Scenario: ${scenarioName}`])
+    worksheet.addRow(["Asset Under Test", result.ticker, `Period Selected: ${result.period.toUpperCase()}`])
+    worksheet.addRow([])
+
+    const inputHeader = worksheet.addRow(["PORTFOLIO INPUTS", "", ""])
+    worksheet.mergeCells(`A6:C6`)
+    inputHeader.getCell(1).font = { name: "Segoe UI", size: 12, bold: true, color: { argb: themeAccent } }
+    inputHeader.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "0F172A" } }
+
+    worksheet.addRow(["Portfolio Value", portfolio, "Starting size of the model portfolio"])
+    worksheet.getCell("B7").numFmt = "$#,##0"
+    worksheet.addRow(["Shock Magnitude", result.shock_pct / 100, "User-defined asset return shock"])
+    worksheet.getCell("B8").numFmt = "0.0%"
+
+    worksheet.addRow([])
+
+    const metricsHeader = worksheet.addRow(["RISK METRICS", "", ""])
+    worksheet.mergeCells(`A10:C10`)
+    metricsHeader.getCell(1).font = { name: "Segoe UI", size: 12, bold: true, color: { argb: themeAccent } }
+    metricsHeader.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "0F172A" } }
+
+    const var99 = portfolio * 2.33 * (result.annualized_volatility / Math.sqrt(252))
+    const recoveryDays = Math.max(18, Math.round(Math.abs(result.pnl_pct) * 260))
+    const betaProxy = Math.max(0.35, Math.min(2.9, result.annualized_volatility / 0.14))
+
+    worksheet.addRow(["PnL Impact ($)", result.pnl_absolute, "Absolute dollar change under shock"])
+    worksheet.getCell("B11").numFmt = "$#,##0"
+    worksheet.addRow(["PnL Impact (%)", result.pnl_pct, "Percentage change under shock"])
+    worksheet.getCell("B12").numFmt = "0.0%"
+    worksheet.addRow(["Value at Risk (99% VaR)", var99, "Daily potential loss limit at 99% confidence"])
+    worksheet.getCell("B13").numFmt = "$#,##0"
+    worksheet.addRow(["Modeled Recovery Time", `${recoveryDays} Days`, "Estimated trading days to recover from shock"])
+    worksheet.addRow(["Beta Proxy", betaProxy, "Volatility-based market sensitivity proxy"])
+    worksheet.getCell("B15").numFmt = "0.00"
+
+    worksheet.addRow([])
+
+    const baselineHeader = worksheet.addRow(["HISTORICAL STATS", "", ""])
+    worksheet.mergeCells(`A17:C17`)
+    baselineHeader.getCell(1).font = { name: "Segoe UI", size: 12, bold: true, color: { argb: themeAccent } }
+    baselineHeader.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "0F172A" } }
+
+    worksheet.addRow(["Annualized Return", result.annualized_return, "Compound annualized return"])
+    worksheet.getCell("B18").numFmt = "0.0%"
+    worksheet.addRow(["Annualized Volatility", result.annualized_volatility, "Annualized standard deviation of returns"])
+    worksheet.getCell("B19").numFmt = "0.0%"
+    worksheet.addRow(["Max Historical Drawdown", result.max_drawdown, "Peak-to-trough maximum drop"])
+    worksheet.getCell("B20").numFmt = "0.0%"
+    worksheet.addRow(["Sharpe Ratio", result.sharpe_ratio, "Risk-adjusted performance (relative to 6.5% RF)"])
+    worksheet.getCell("B21").numFmt = "0.00"
+
+    worksheet.addRow([])
+
+    worksheet.addRow(["MACHINE ANALYSIS & COMMENTARY"])
+    worksheet.mergeCells("A23:C23")
+    worksheet.getCell("A23").font = { name: "Segoe UI", bold: true, color: { argb: "FFFFFF" } }
+    worksheet.getCell("A23").fill = { type: "pattern", pattern: "solid", fgColor: { argb: "475569" } }
+
+    const narrativeText = `${scenarioName} maps ${result.ticker} to a ${result.pnl_pct * 100 > 0 ? "+" : ""}${(result.pnl_pct * 100).toFixed(1)}% modeled portfolio response. ${note} implies a liquidity-aware hedge budget near $${var99.toLocaleString("en-US", { maximumFractionDigits: 0 })}, with drawdown pressure concentrated around the shock reference band.`
+    worksheet.addRow([narrativeText])
+    worksheet.mergeCells("A24:C25")
+    worksheet.getCell("A24").alignment = { wrapText: true, vertical: "top" }
+
+    worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+      row.eachCell((cell) => {
+        if (rowNumber > 1) {
+          cell.font = { name: "Segoe UI", size: 10 }
+        }
+        if (rowNumber !== 1 && rowNumber !== 6 && rowNumber !== 10 && rowNumber !== 17 && rowNumber !== 23) {
+          cell.border = {
+            bottom: { style: "thin", color: { argb: "E2E8F0" } },
+            right: { style: "thin", color: { argb: "E2E8F0" } },
+          }
+        }
+      })
+    })
+
+    try {
+      const svg = document.querySelector('svg[aria-label="Return distribution histogram"]') as SVGElement
+      if (svg) {
+        const pngBase64 = await svgToPngBase64(svg, 760, 260)
+        const imgId = workbook.addImage({
+          base64: pngBase64,
+          extension: "png",
+        })
+        worksheet.addImage(imgId, {
+          tl: { col: 3.5, row: 5 },
+          ext: { width: 550, height: 210 },
+        })
+      }
+    } catch (e) {
+      console.error("Failed to capture chart: ", e)
+    }
+
+  } else if (analysis.tab === "correlation" && analysis.correlation) {
+    const { result } = analysis.correlation
+    const worksheet = workbook.addWorksheet("Correlation Report")
+    worksheet.views = [{ showGridLines: true }]
+
+    worksheet.columns = [
+      { header: "Parameter / Metric", key: "metric", width: 25 },
+      { header: "Value", key: "value", width: 20 },
+      { header: "Interpretation", key: "desc", width: 50 },
+    ]
+
+    worksheet.mergeCells("A1:C1")
+    const titleCell = worksheet.getCell("A1")
+    titleCell.value = "FINANCIAL LENS — ROLLING CORRELATION REPORT"
+    titleCell.font = { name: "Segoe UI", size: 16, bold: true, color: { argb: "FFFFFF" } }
+    titleCell.alignment = { vertical: "middle", horizontal: "center" }
+    titleCell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: themeHeaderBg },
+    }
+    worksheet.getRow(1).height = 40
+
+    worksheet.addRow(["Date Run", new Date().toLocaleString(), `Asset Pair: ${result.ticker1} / ${result.ticker2}`])
+    worksheet.addRow(["Rolling Window", `${result.window} Days`, `Period Selected: ${result.period.toUpperCase()}`])
+    worksheet.addRow([])
+
+    const header = worksheet.addRow(["CORRELATION METRICS", "", ""])
+    worksheet.mergeCells("A6:C6")
+    header.getCell(1).font = { name: "Segoe UI", size: 12, bold: true, color: { argb: themeAccent } }
+    header.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "0F172A" } }
+
+    worksheet.addRow(["Current Correlation", result.current_correlation, result.relationship])
+    worksheet.getCell("B7").numFmt = "0.00"
+    worksheet.addRow(["Average Correlation", result.avg_correlation, "Mean value over selected period"])
+    worksheet.getCell("B8").numFmt = "0.00"
+    worksheet.addRow(["Minimum Correlation", result.min_correlation, "Observed lowest coupling value"])
+    worksheet.getCell("B9").numFmt = "0.00"
+    worksheet.addRow(["Maximum Correlation", result.max_correlation, "Observed highest coupling value"])
+    worksheet.getCell("B10").numFmt = "0.00"
+
+    worksheet.addRow([])
+
+    worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+      row.eachCell((cell) => {
+        if (rowNumber > 1) {
+          cell.font = { name: "Segoe UI", size: 10 }
+        }
+        if (rowNumber !== 1 && rowNumber !== 6) {
+          cell.border = {
+            bottom: { style: "thin", color: { argb: "E2E8F0" } },
+            right: { style: "thin", color: { argb: "E2E8F0" } },
+          }
+        }
+      })
+    })
+
+    try {
+      const svg = document.querySelector('svg[aria-label="Rolling correlation chart"]') as SVGElement
+      if (svg) {
+        const pngBase64 = await svgToPngBase64(svg, 740, 250)
+        const imgId = workbook.addImage({
+          base64: pngBase64,
+          extension: "png",
+        })
+        worksheet.addImage(imgId, {
+          tl: { col: 0, row: 12 },
+          ext: { width: 550, height: 210 },
+        })
+      }
+    } catch (e) {
+      console.error("Failed to capture chart: ", e)
+    }
+
+  } else if (analysis.tab === "regression" && analysis.regression) {
+    const { result } = analysis.regression
+    const worksheet = workbook.addWorksheet("Regression Report")
+    worksheet.views = [{ showGridLines: true }]
+
+    worksheet.columns = [
+      { header: "Coefficient / Stat", key: "metric", width: 25 },
+      { header: "Estimate", key: "value", width: 18 },
+      { header: "Interpretation", key: "desc", width: 50 },
+    ]
+
+    worksheet.mergeCells("A1:C1")
+    const titleCell = worksheet.getCell("A1")
+    titleCell.value = "FINANCIAL LENS — OLS REGRESSION REPORT"
+    titleCell.font = { name: "Segoe UI", size: 16, bold: true, color: { argb: "FFFFFF" } }
+    titleCell.alignment = { vertical: "middle", horizontal: "center" }
+    titleCell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: themeHeaderBg },
+    }
+    worksheet.getRow(1).height = 40
+
+    worksheet.addRow(["Date Run", new Date().toLocaleString(), `Model: y = ${result.dependent} (Dep) vs x = ${result.independent} (Indep)`])
+    worksheet.addRow(["Estimated Equation", `y = ${result.alpha.toFixed(4)} + ${result.beta.toFixed(4)}x + ε`, `Period: ${result.period.toUpperCase()}`])
+    worksheet.addRow([])
+
+    const header = worksheet.addRow(["MODEL ESTIMATION DETAILS", "", ""])
+    worksheet.mergeCells("A6:C6")
+    header.getCell(1).font = { name: "Segoe UI", size: 12, bold: true, color: { argb: themeAccent } }
+    header.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "0F172A" } }
+
+    worksheet.addRow(["Beta (β)", result.beta, result.beta_interpretation])
+    worksheet.getCell("B7").numFmt = "0.00"
+    worksheet.addRow(["Alpha (α)", result.alpha, result.alpha_interpretation])
+    worksheet.getCell("B8").numFmt = "0.0000"
+    worksheet.addRow(["R-Squared (R²)", result.r_squared, result.fit_quality])
+    worksheet.getCell("B9").numFmt = "0.0%"
+    worksheet.addRow(["P-Value (Beta)", result.p_value_beta, result.p_value_beta < 0.05 ? "Statistically significant slope coefficient" : "Slope coefficient not statistically significant"])
+    worksheet.getCell("B10").numFmt = "0.000"
+    worksheet.addRow(["Beta Std Error", result.std_err_beta, "Standard error of the slope coefficient"])
+    worksheet.getCell("B11").numFmt = "0.000"
+    worksheet.addRow(["Alpha Std Error", result.std_err_alpha, "Standard error of the intercept coefficient"])
+    worksheet.getCell("B12").numFmt = "0.0000"
+
+    worksheet.addRow([])
+
+    worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+      row.eachCell((cell) => {
+        if (rowNumber > 1) {
+          cell.font = { name: "Segoe UI", size: 10 }
+        }
+        if (rowNumber !== 1 && rowNumber !== 6) {
+          cell.border = {
+            bottom: { style: "thin", color: { argb: "E2E8F0" } },
+            right: { style: "thin", color: { argb: "E2E8F0" } },
+          }
+        }
+      })
+    })
+
+    try {
+      const svg = document.querySelector('svg[aria-label="Factor scatter plot"]') as SVGElement
+      if (svg) {
+        const pngBase64 = await svgToPngBase64(svg, 720, 250)
+        const imgId = workbook.addImage({
+          base64: pngBase64,
+          extension: "png",
+        })
+        worksheet.addImage(imgId, {
+          tl: { col: 0, row: 14 },
+          ext: { width: 550, height: 210 },
+        })
+      }
+    } catch (e) {
+      console.error("Failed to capture chart: ", e)
+    }
+  }
+
+  const buffer = await workbook.xlsx.writeBuffer()
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  })
+  const url = window.URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = `Financial_Lens_Report_${analysis.tab}_${new Date().toISOString().split("T")[0]}.xlsx`
+  a.click()
+  window.URL.revokeObjectURL(url)
 }
 
 

@@ -54,9 +54,6 @@ stitch_assets/
 .idea/
 *.iml
 
-# ── AI Agents ────────────────────────────────────────────────────────────────
-frontend/AGENTS.md
-frontend/CLAUDE.md
 
 # ── Temporary & Backup Files ─────────────────────────────────────────────────
 *.tmp
