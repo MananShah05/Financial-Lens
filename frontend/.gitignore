@@ -61,6 +61,3 @@ next-env.d.ts
 .idea/
 *.iml
 
-# AI Agents
-AGENTS.md
-CLAUDE.md
